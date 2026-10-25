@@ -3,6 +3,11 @@
 
 port = 8080
 
+# Optional. The IP address to listen on; without it the server listens on
+# every interface. "127.0.0.1" keeps it to this machine, e.g. behind a
+# TLS-terminating reverse proxy.
+# host = "127.0.0.1"
+
 # The OpenAI-compatible chat-completions endpoint — Ollama, vLLM,
 # LM Studio, llama.cpp, LiteLLM, or a compatible cloud API. Accepted with
 # or without the trailing /chat/completions; a query string is passed

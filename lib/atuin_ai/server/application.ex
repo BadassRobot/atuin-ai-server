@@ -18,13 +18,23 @@ defmodule AtuinAI.Server.Application do
       if Application.get_env(:atuin_ai_server, :server, true) do
         config = Config.load!(config_path())
         AtuinAI.Server.State.put(config, auth_token())
-        [{Bandit, plug: AtuinAI.Server.Router, port: config.port}]
+        [{Bandit, bandit_options(config)}]
       else
         # Tests boot the server themselves with their own config.
         []
       end
 
     Supervisor.start_link(children, strategy: :one_for_one, name: AtuinAI.Server.Supervisor)
+  end
+
+  @doc false
+  # Without a configured host, Bandit's own default applies: every interface.
+  def bandit_options(%Config{host: nil} = config) do
+    [plug: AtuinAI.Server.Router, port: config.port]
+  end
+
+  def bandit_options(%Config{host: host} = config) do
+    [plug: AtuinAI.Server.Router, port: config.port, ip: host]
   end
 
   defp config_path do

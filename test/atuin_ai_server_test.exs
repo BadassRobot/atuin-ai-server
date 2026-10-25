@@ -261,6 +261,46 @@ defmodule AtuinAI.ServerTest do
     refute :atuin_ai_core@instance.is_server_tool(instance, "web_scrape")
   end
 
+  test "a configured host binds the listener to that address only" do
+    config = load_config("host_test.toml", ~s(host = "127.0.0.1"\nport = #{free_port()}\n))
+    assert config.host == {127, 0, 0, 1}
+
+    pid =
+      start_supervised!({Bandit, AtuinAI.Server.Application.bandit_options(config)},
+        id: :bound_server
+      )
+
+    assert {:ok, {{127, 0, 0, 1}, _port}} = ThousandIsland.listener_info(pid)
+  end
+
+  test "without a host the listener keeps Bandit's default, every interface" do
+    config = load_config("no_host_test.toml", "")
+    assert config.host == nil
+    refute Keyword.has_key?(AtuinAI.Server.Application.bandit_options(config), :ip)
+  end
+
+  test "a host that is not an IP address fails at boot" do
+    assert_raise RuntimeError, ~r/host must be an IP address/, fn ->
+      load_config("bad_host_test.toml", ~s(host = "localhost"\n))
+    end
+  end
+
+  # Loads a minimal config with `top` prepended to it.
+  defp load_config(name, top) do
+    config_path = Path.join(System.tmp_dir!(), name)
+
+    File.write!(config_path, """
+    #{top}endpoint = "http://localhost:9/v1"
+
+    [[models]]
+    alias = "m"
+    model = "m1"
+    """)
+
+    on_exit(fn -> File.rm(config_path) end)
+    AtuinAI.Server.Config.load!(config_path)
+  end
+
   defp free_port do
     {:ok, socket} = :gen_tcp.listen(0, [])
     {:ok, port} = :inet.port(socket)

@@ -50,6 +50,7 @@ Docker image defaults to `/etc/atuin-ai/config.toml`).
 
 ```toml
 port = 8080
+host = "127.0.0.1"   # optional; the IP address to listen on. Default: every interface
 
 # The OpenAI-compatible chat-completions endpoint. Accepted with or
 # without the trailing /chat/completions; a query string is passed

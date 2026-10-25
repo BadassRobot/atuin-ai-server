@@ -6,6 +6,7 @@ defmodule AtuinAI.Server.Config do
   The file shape:
 
       port = 8080                       # optional, default 8080
+      host = "127.0.0.1"                # optional IP address; default all interfaces
       endpoint = "http://localhost:11434/v1"
       default_model = "llama"           # optional, defaults to the first model
 
@@ -28,7 +29,7 @@ defmodule AtuinAI.Server.Config do
   arguments and turns validation failures into boot errors.
   """
 
-  defstruct [:port, :catalog, :options_by_model, :default_alias, :web_tools]
+  defstruct [:port, :host, :catalog, :options_by_model, :default_alias, :web_tools]
 
   def load!(path) do
     raw =
@@ -46,11 +47,28 @@ defmodule AtuinAI.Server.Config do
 
     %__MODULE__{
       port: raw["port"] || 8080,
+      host: parse_host(raw["host"]),
       catalog: catalog(models, default_alias),
       options_by_model: options_by_model(models, endpoint, api_key, headers, extra_body),
       default_alias: default_alias,
       web_tools: parse_web_tools(raw["web_tools"])
     }
+  end
+
+  # `host` — optional; the IP address to listen on, e.g. "127.0.0.1" to
+  # serve only this machine (behind a reverse proxy). Without it the
+  # listener binds every interface, as before.
+  defp parse_host(nil), do: nil
+
+  defp parse_host(host) when is_binary(host) do
+    case :inet.parse_strict_address(String.to_charlist(host)) do
+      {:ok, address} -> address
+      {:error, _} -> raise "Config host must be an IP address, got: #{inspect(host)}"
+    end
+  end
+
+  defp parse_host(other) do
+    raise "Config host must be a string, got: #{inspect(other)}"
   end
 
   defp fetch!(raw, key) do
